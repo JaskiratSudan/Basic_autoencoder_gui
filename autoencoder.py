@@ -2,7 +2,7 @@ from tensorflow.keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampli
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import Callback
 from tensorflow import keras
-from keras.preprocessing.image import img_to_array
+from tensorflow.keras.utils import img_to_array
 import matplotlib.pyplot as plt
 import matplotlib.image
 import numpy as np
