@@ -12,7 +12,7 @@ import glob
 
 
 def train_model(path, epochs):
-    files = glob.glob('tkinter_gui/output/*')
+    files = glob.glob('output/*')
     for f in files:
         os.remove(f)
     size = 256
