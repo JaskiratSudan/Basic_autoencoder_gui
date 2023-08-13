@@ -9,9 +9,10 @@ import numpy as np
 import cv2
 import os
 import glob
+from PIL import Image, ImageTk
 
 
-def train_model(path, epochs):
+def train_model(path, epochs, window, output_label):
     files = glob.glob('output/*')
     for f in files:
         os.remove(f)
@@ -29,6 +30,26 @@ def train_model(path, epochs):
 
     img_array = np.reshape(img_data, (len(img_data), size, size, img_channels))
     img_array = img_array.astype('float32')/255.
+
+    #------------------CALLBACK----------------------------
+
+    class PerformancePlotCallback(Callback):
+        def __init__(self, image, model_name):
+            self.image = image
+            self.model_name = model_name
+
+        def on_epoch_end(self, epoch, logs={}):
+            pred = self.model.predict(self.image)
+            pred[0] = pred[0] / pred[0].max()
+            pred = np.reshape(pred, (len(pred), size, size, 3))
+            pred = np.squeeze(pred)
+            output_pl = Image.fromarray(np.uint8(pred*255))
+            output_tk = ImageTk.PhotoImage(output_pl)
+            output_label.configure(image=output_tk)
+            output_label.photo = output_tk
+            window.update_idletasks()
+
+    #-------------------------------------------------------
 
 
     #------------------MODEL--------------------------------
@@ -57,7 +78,9 @@ def train_model(path, epochs):
 
     #---------------------------------------------------------
 
-    model.fit(img_array, img_array, epochs=epochs, shuffle=True)
+    create_frames = PerformancePlotCallback(img_array, model_name=model)
+
+    model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
     pred = model.predict(img_array)
     pred[0] = pred[0] / pred[0].max()
     if img_channels == 1:                   #grayscale image

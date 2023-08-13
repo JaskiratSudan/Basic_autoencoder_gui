@@ -28,13 +28,13 @@ def import_img(labelname):
 
 def training(path, epochs, lab):
     status_lab.config(text="Training Model....")
-    train_model(path=path, epochs=epochs)
-    list_of_files = glob.glob('output/*')
-    latest_image = max(list_of_files, key=os.path.getctime)
-    output_pl = Image.open(latest_image).resize((img_size,img_size))
-    output_tk = ImageTk.PhotoImage(output_pl)
-    lab.configure(image=output_tk)
-    lab.photo = output_tk
+    train_model(path=path, epochs=epochs, window=window, output_label=lab)
+    # list_of_files = glob.glob('output/*')
+    # latest_image = max(list_of_files, key=os.path.getctime)
+    # output_pl = Image.open(latest_image).resize((img_size,img_size))
+    # output_tk = ImageTk.PhotoImage(output_pl)
+    # lab.configure(image=output_tk)
+    # lab.photo = output_tk
     status_lab.config(text="Done Training")
 
 import_button = ttk.Button(window, text='Import image', command=lambda:import_img(train_label))
