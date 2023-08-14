@@ -12,7 +12,7 @@ import glob
 from PIL import Image, ImageTk
 
 
-def train_model(path, epochs, window, output_label):
+def train_model(path, epochs, window, output_label, model_no=0):
     files = glob.glob('output/*')
     for f in files:
         os.remove(f)
@@ -78,15 +78,50 @@ def train_model(path, epochs, window, output_label):
 
     #---------------------------------------------------------
 
-    create_frames = PerformancePlotCallback(img_array, model_name=model)
+    #------------------MODEL1--------------------------------
 
-    model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
-    pred = model.predict(img_array)
-    pred[0] = pred[0] / pred[0].max()
-    if img_channels == 1:                   #grayscale image
-        pred = np.reshape(pred, (len(pred), size, size))
-        matplotlib.image.imsave('output/out.png', pred[0])
-    else:
-        matplotlib.image.imsave('output/out.png', pred[0])
+    model1 = Sequential()
+    model1.add(Conv2D(32, (3,3), activation='relu', padding='same', input_shape=(size, size, 3)))
+    model1.add(MaxPooling2D((2,2), padding='same'))
+    model1.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    model1.add(MaxPooling2D((2,2), padding='same'))
+    model1.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model1.add(MaxPooling2D((2,2), padding='same'))
 
-    print(model.summary())
+    model1.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model1.add(UpSampling2D((2,2)))
+    model1.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    model1.add(UpSampling2D((2,2)))
+    model1.add(Conv2D(32, (3,3), activation='relu', padding='same', input_shape=(size, size, 3)))
+    model1.add(UpSampling2D((2,2)))
+    model1.add(Conv2D(3, (3,3), activation='relu', padding='same'))
+    model1.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+
+    #---------------------------------------------------------
+
+    
+    if model_no==0:
+        create_frames = PerformancePlotCallback(img_array, model_name=model)
+        model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
+        pred = model.predict(img_array)
+        pred[0] = pred[0] / pred[0].max()
+        if img_channels == 1:                   #grayscale image
+            pred = np.reshape(pred, (len(pred), size, size))
+            matplotlib.image.imsave('output/out.png', pred[0])
+        else:
+            matplotlib.image.imsave('output/out.png', pred[0])
+
+        print(model.summary())
+
+    elif model_no==1:
+        create_frames = PerformancePlotCallback(img_array, model_name=model1)
+        model1.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
+        pred = model1.predict(img_array)
+        pred[0] = pred[0] / pred[0].max()
+        if img_channels == 1:                   #grayscale image
+            pred = np.reshape(pred, (len(pred), size, size))
+            matplotlib.image.imsave('output/out.png', pred[0])
+        else:
+            matplotlib.image.imsave('output/out.png', pred[0])
+
+        print(model1.summary())
