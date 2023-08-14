@@ -23,11 +23,10 @@ def import_img(labelname):
     image = ImageTk.PhotoImage(image_org)
     labelname.configure(image=image)
     labelname.photo = image
-    status_lab.config(text="Image Imported.\nEnter number of epochs and Train.")
+    status_lab.config(text="Enter number of epochs and Train.")
 
 def training(path, epochs, lab):
-    status_lab.config(text="Training Model....")
-    train_model(path=path, epochs=epochs, window=window, output_label=lab, model_no=check_var.get())
+    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, model_no=check_var.get())
     status_lab.config(text="Done Training")
 
 import_button = ttk.Button(window, text='Import image', command=lambda:import_img(train_label))
@@ -50,7 +49,7 @@ output_pl = Image.open(person_img).resize((256,256))
 output_tk = ImageTk.PhotoImage(output_pl)
 output_label = ttk.Label(window, image=output_tk)
 
-status_lab = ttk.Label(text="Please Import image.")
+status_lab = ttk.Label(anchor="center", text="Please Import image.")
 
 check_var = tk.IntVar()
 model_check = ttk.Checkbutton(window, text="increase latent space to (32, 32, 128) for better output", variable=check_var)

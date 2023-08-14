@@ -12,7 +12,7 @@ import glob
 from PIL import Image, ImageTk
 
 
-def train_model(path, epochs, window, output_label, model_no=0):
+def train_model(path, epochs, window, output_label, status_lab, model_no=0):
     files = glob.glob('output/*')
     for f in files:
         os.remove(f)
@@ -47,6 +47,10 @@ def train_model(path, epochs, window, output_label, model_no=0):
             output_tk = ImageTk.PhotoImage(output_pl)
             output_label.configure(image=output_tk)
             output_label.photo = output_tk
+            if model_no==0:
+                status_lab.configure(text="Training default model... \n{}/{} epochs done.".format(epoch, epochs))
+            elif model_no==1:
+                status_lab.configure(text="Training high latent space model... \n{}/{} epochs done.".format(epoch, epochs))
             window.update_idletasks()
 
     #-------------------------------------------------------
