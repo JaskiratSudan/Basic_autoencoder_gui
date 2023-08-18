@@ -10,7 +10,7 @@ from autoencoder import train_model
 
 window = ttk.Window(themename='darkly')
 window.title("Basic Autoencoder GUI")
-window.geometry('1100x600')
+window.geometry('1100x700')
 
 path = None
 person_img = 'assets/person.png'
@@ -26,7 +26,7 @@ def import_img(labelname):
     status_lab.config(text="Enter number of epochs and Train.")
 
 def training(path, epochs, lab):
-    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, model_no=check_var.get())
+    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, latent_lab=latent_lab, num_cols=2, num_rows=2)
     status_lab.config(text="Done Training")
 
 import_button = ttk.Button(window, text='Import image', command=lambda:import_img(train_label))
@@ -52,7 +52,11 @@ output_label = ttk.Label(window, image=output_tk)
 status_lab = ttk.Label(anchor="center", text="Please Import image.")
 
 check_var = tk.IntVar()
-model_check = ttk.Checkbutton(window, text="increase latent space to (32, 32, 128) for better output", variable=check_var)
+# model_check = ttk.Checkbutton(window, text="increase depth of latent space.", variable=check_var)
+
+latent_pl = Image.open(person_img).resize((256,256))
+latent_tk = ImageTk.PhotoImage(latent_pl)
+latent_lab = ttk.Label(window, image=output_tk)
 
 window.columnconfigure(0, weight=5)
 window.columnconfigure(1, weight=1)
@@ -64,8 +68,9 @@ window.rowconfigure(2, weight=1)
 import_button.grid(row=0, column=0)
 train_label.grid(row=1, column=0)
 epochs_val.grid(row=0, column=1)
-model_check.grid(row=0, column=2, sticky='s')
-train_button.grid(row=1,column=1)
+# model_check.grid(row=0, column=2, sticky='s')
+latent_lab.grid(row=1, column=1)
+train_button.grid(row=0,column=1, sticky='s')
 output_label.grid(row=1, column=2)
 status_lab.grid(row=2, column=1)
 
