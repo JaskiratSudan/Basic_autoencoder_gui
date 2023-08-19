@@ -2,7 +2,7 @@
 ### A fun way to watch Autoencoders learn to reconstruct pictures from latent space.
 A very basic Autoencoder Architecture is designed, which can be trained on the local machine.
 
-https://github.com/JaskiratSudan/Basic_autoencoder_gui/assets/68187330/2648d4bc-12bc-4f92-95d6-44b47fe9eb3d
+https://github.com/JaskiratSudan/Basic_autoencoder_gui/assets/68187330/17c37173-2b1f-4fdf-ad4d-5b745789898c
 
 ## Installation
 It is recommended to install libraries in a virtual environment.
