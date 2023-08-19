@@ -10,7 +10,7 @@ from autoencoder import train_model
 
 window = ttk.Window(themename='darkly')
 window.title("Basic Autoencoder GUI")
-window.geometry('1100x700')
+window.geometry('900x600')
 
 path = None
 person_img = 'assets/person.png'
@@ -26,7 +26,7 @@ def import_img(labelname):
     status_lab.config(text="Enter number of epochs and Train.")
 
 def training(path, epochs, lab):
-    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, latent_lab=latent_lab, num_cols=2, num_rows=2)
+    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, latent_lab=latent_lab,progress_var=progress_var, progress_bar=pb)
     status_lab.config(text="Done Training")
 
 import_button = ttk.Button(window, text='Import image', command=lambda:import_img(train_label))
@@ -53,10 +53,17 @@ status_lab = ttk.Label(anchor="center", text="Please Import image.")
 
 check_var = tk.IntVar()
 # model_check = ttk.Checkbutton(window, text="increase depth of latent space.", variable=check_var)
+progress_var = tk.DoubleVar()
+progress_var.set(0)
+pb = ttk.Progressbar(window, variable=progress_var, orient='horizontal', mode='determinate', length=200)
 
 latent_pl = Image.open(person_img).resize((256,256))
 latent_tk = ImageTk.PhotoImage(latent_pl)
 latent_lab = ttk.Label(window, image=output_tk)
+
+input_info = ttk.Label(window, text="Input Image")
+latent_info = ttk.Label(window, text="Latent Space Channels")
+output_info = ttk.Label(window, text="Reconstructed Image")
 
 window.columnconfigure(0, weight=5)
 window.columnconfigure(1, weight=1)
@@ -70,8 +77,12 @@ train_label.grid(row=1, column=0)
 epochs_val.grid(row=0, column=1)
 # model_check.grid(row=0, column=2, sticky='s')
 latent_lab.grid(row=1, column=1)
-train_button.grid(row=0,column=1, sticky='s')
+train_button.grid(row=0,column=2, sticky='w')
 output_label.grid(row=1, column=2)
-status_lab.grid(row=2, column=1)
+status_lab.grid(row=2, column=1, sticky='n')
+pb.grid(row=2,column=1)
+input_info.grid(row=1,column=0, sticky='n')
+latent_info.grid(row=1,column=1, sticky='n')
+output_info.grid(row=1,column=2, sticky='n')
 
 window.mainloop()

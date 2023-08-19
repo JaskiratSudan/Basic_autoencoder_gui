@@ -14,7 +14,7 @@ import glob
 from PIL import Image, ImageTk
 
 
-def train_model(path, epochs, window, output_label, status_lab, latent_lab, num_rows, num_cols):
+def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar):
     files = glob.glob('output/*')
     for f in files:
         os.remove(f)
@@ -32,7 +32,8 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, num_
 
     img_array = np.reshape(img_data, (len(img_data), size, size, img_channels))
     img_array = img_array.astype('float32')/255.
-
+    progress_bar.config(maximum=epochs)
+    
     #------------------CALLBACK----------------------------
 
     class PerformancePlotCallback(Callback):
@@ -45,35 +46,27 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, num_
             pred[0] = pred[0] / pred[0].max()
             pred = np.reshape(pred, (len(pred), size, size, 3))
             pred = np.squeeze(pred)
-            layer_output=model.get_layer('latent_space').output  #get the Output of the Layer
-            intermediate_model=tf.keras.models.Model(inputs=model.input,outputs=layer_output) #Intermediate model between Input Layer and Output Layer which we are concerned about 
             intermediate_prediction=intermediate_model.predict(img_array) #predicting in the Intermediate Node
-            # print(np.shape(intermediate_prediction))  
+            intermediate_prediction = np.squeeze(intermediate_prediction)
+            # print(np.shape(intermediate_prediction)) 
+             
             image_array = np.asarray(cv2.split(np.squeeze(intermediate_prediction)))
-            fig, axs = plt.subplots(num_rows, num_cols, figsize=(3, 3))
-            fig.suptitle("Latent Space")
-            for i in range(min(num_rows * num_cols, image_array.shape[0])):
-                row = i // num_cols
-                col = i % num_cols
-                axs[row, col].imshow(image_array[i], cmap='gray')
-                axs[row, col].axis('off')
-            # Adjust spacing between subplots
-            # plt.subplots_adjust(wspace=0, hspace=0)
-            plt.tight_layout(pad=1)
-            img_buf = io.BytesIO()
-            plt.savefig(img_buf, format='png')
-            im = Image.open(img_buf)
-            latent_tk = ImageTk.PhotoImage(im)
+            canvas = np.zeros((64, 64))
+            canvas[0:32, 0:32] = image_array[0]
+            canvas[0:32, 32:64] = image_array[1]
+            canvas[32:64, 0:32] = image_array[2]
+            canvas[32:64, 32:64] = image_array[3]
+            latent_pl = Image.fromarray(np.uint8(canvas*255)).resize((200,200))
+            latent_tk = ImageTk.PhotoImage(latent_pl)
             latent_lab.configure(image=latent_tk)
             latent_lab.photo = latent_tk
-            fig.clear()
-            plt.close(fig)
             output_pl = Image.fromarray(np.uint8(pred*255))
             output_tk = ImageTk.PhotoImage(output_pl)
             output_label.configure(image=output_tk)
             output_label.photo = output_tk
-    
-            status_lab.configure(text="Training default model... \n{}/{} epochs done.".format(epoch, epochs))
+            progress_var.set(epoch+1)
+
+            status_lab.configure(text="Training  Model... \n{}/{} epochs done.".format(epoch, epochs))
             window.update_idletasks()
 
     #-------------------------------------------------------
@@ -100,50 +93,29 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, num_
     model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
     #---------------------------------------------------------
-
-    #------------------MODEL1--------------------------------
-
-    # model1 = Sequential()
-    # model1.add(Conv2D(32, (3,3), activation='relu', padding='same', input_shape=(size, size, 3)))
-    # model1.add(MaxPooling2D((2,2), padding='same'))
-    # model1.add(Conv2D(64, (3,3), activation='relu', padding='same'))
-    # model1.add(MaxPooling2D((2,2), padding='same'))
-    # model1.add(Conv2D(128, (3,3), activation='relu', padding='same'))
-    # model1.add(MaxPooling2D((2,2), padding='same'))
-
-    # model1.add(Conv2D(128, (3,3), activation='relu', padding='same'))
-    # model1.layers[-1]._name = "Latent_space"
-    # model1.add(UpSampling2D((2,2)))
-    # model1.add(Conv2D(64, (3,3), activation='relu', padding='same'))
-    # model1.add(UpSampling2D((2,2)))
-    # model1.add(Conv2D(32, (3,3), activation='relu', padding='same', input_shape=(size, size, 3)))
-    # model1.add(UpSampling2D((2,2)))
-    # model1.add(Conv2D(3, (3,3), activation='relu', padding='same'))
-    # model1.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-
-    #---------------------------------------------------------
-
+    layer_output=model.get_layer('latent_space').output  #get the Output of the Layer
+    intermediate_model=tf.keras.models.Model(inputs=model.input,outputs=layer_output)
     
     create_frames = PerformancePlotCallback(img_array, model_name=model)
     model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
     pred = model.predict(img_array)
     pred[0] = pred[0] / pred[0].max()
+
+    intermediate_prediction=intermediate_model.predict(img_array) #predicting in the Intermediate Node
+    intermediate_prediction = np.squeeze(intermediate_prediction)
+    print(np.shape(intermediate_prediction))  
+    image_array = np.asarray(cv2.split(np.squeeze(intermediate_prediction)))
+    canvas = np.zeros((64, 64))
+    canvas[0:32, 0:32] = image_array[0]
+    canvas[0:32, 32:64] = image_array[1]
+    canvas[32:64, 0:32] = image_array[2]
+    canvas[32:64, 32:64] = image_array[3]
+    canvas[0] = canvas[0] / canvas[0].max()
+
     if img_channels == 1:                   #grayscale image
         pred = np.reshape(pred, (len(pred), size, size))
-        matplotlib.image.imsave('output/out.png', pred[0])
+        matplotlib.image.imsave('output/out_e{}.png'.format(epochs), pred[0])
     else:
-        matplotlib.image.imsave('output/out.png', pred[0])
+        matplotlib.image.imsave('output/out_e{}.png'.format(epochs), pred[0])
+    matplotlib.image.imsave('output/latent_space_e{}.png'.format(epochs), canvas)
     print(model.summary())
-
-    # elif model_no==1:
-    #     create_frames = PerformancePlotCallback(img_array, model_name=model1)
-    #     model1.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
-    #     pred = model1.predict(img_array)
-    #     pred[0] = pred[0] / pred[0].max()
-    #     if img_channels == 1:                   #grayscale image
-    #         pred = np.reshape(pred, (len(pred), size, size))
-    #         matplotlib.image.imsave('output/out.png', pred[0])
-    #     else:
-    #         matplotlib.image.imsave('output/out.png', pred[0])
-
-    #     print(model1.summary())
