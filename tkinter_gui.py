@@ -26,7 +26,7 @@ def import_img(labelname):
     status_lab.config(text="Enter number of epochs and Train.")
 
 def training(path, epochs, lab):
-    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, latent_lab=latent_lab,progress_var=progress_var, progress_bar=pb)
+    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, latent_lab=latent_lab,progress_var=progress_var, progress_bar=pb, input_size=input_size, latent_size=latent_size, output_size=output_size)
     status_lab.config(text="Done Training")
 
 import_button = ttk.Button(window, text='Import image', command=lambda:import_img(train_label))
@@ -65,6 +65,11 @@ input_info = ttk.Label(window, text="Input Image")
 latent_info = ttk.Label(window, text="Latent Space Channels")
 output_info = ttk.Label(window, text="Reconstructed Image")
 
+input_size = ttk.Label(window, text="Input image size.")
+latent_size = ttk.Label(window, text="Latent image size.")
+output_size = ttk.Label(window, text="Output image size.")
+
+
 window.columnconfigure(0, weight=5)
 window.columnconfigure(1, weight=1)
 window.columnconfigure(2, weight=5)
@@ -80,6 +85,9 @@ latent_lab.grid(row=1, column=1)
 train_button.grid(row=0,column=2, sticky='w')
 output_label.grid(row=1, column=2)
 status_lab.grid(row=2, column=1, sticky='n')
+input_size.grid(row=2, column=0, sticky='n')
+latent_size.grid(row=2, column=1, sticky='n')
+output_size.grid(row=2, column=2, sticky='n')
 pb.grid(row=2,column=1)
 input_info.grid(row=1,column=0, sticky='n')
 latent_info.grid(row=1,column=1, sticky='n')

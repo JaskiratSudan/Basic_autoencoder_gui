@@ -22,7 +22,7 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
     size = 256
     img_channels = 3
     latent_dim = (32,32)
-    latent_channels = 4
+    latent_channels = 64
 
     np.random.seed(42)
     img_data = []
@@ -55,20 +55,13 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
             # print(np.shape(intermediate_prediction)) 
              
             image_array = np.asarray(cv2.split(np.squeeze(intermediate_prediction)))
-            print("\n\n shape of imagearray: {}".format(image_array.shape))
-            canvas = np.zeros((int(latent_dim[0]*(latent_channels**1/2)), int(latent_dim[0]*(latent_channels**1/2))))
-            for i in range(latent_channels):
-                for row in range(int(latent_channels**1/2)):
-                    for col in range(int(latent_channels**1/2)):
-                        print(canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]].shape)
-                        # print("canvas shape: {}".format(canvas.shape))
-                        canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]] = image_array[i]
-                        # i+=1
-                        # plt.imshow(image_array[i])
-                        # plt.show()
-                        # canvas[0:32, 32:64] = image_array[1]
-                        # canvas[32:64, 0:32] = image_array[2]
-                        # canvas[32:64, 32:64] = image_array[3]
+            canvas = np.zeros((int(latent_dim[0]*(latent_channels**(1/2))), int(latent_dim[0]*(latent_channels**(1/2)))))
+            i=0
+            for row in range(int(latent_channels**(1/2))):
+                for col in range(int(latent_channels**(1/2))):
+                    canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]] = image_array[i]
+                    i+=1
+                        
             latent_pl = Image.fromarray(np.uint8(canvas*255)).resize((200,200))
             latent_tk = ImageTk.PhotoImage(latent_pl)
             latent_lab.configure(image=latent_tk)
@@ -157,12 +150,12 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
     intermediate_prediction = np.squeeze(intermediate_prediction)
     print(np.shape(intermediate_prediction))  
     image_array = np.asarray(cv2.split(np.squeeze(intermediate_prediction)))
-    canvas = np.zeros((64, 64))
-    canvas[0:32, 0:32] = image_array[0]
-    canvas[0:32, 32:64] = image_array[1]
-    canvas[32:64, 0:32] = image_array[2]
-    canvas[32:64, 32:64] = image_array[3]
-    canvas[0] = canvas[0] / canvas[0].max()
+    canvas = np.zeros((int(latent_dim[0]*(latent_channels**(1/2))), int(latent_dim[0]*(latent_channels**(1/2)))))
+    i=0
+    for row in range(int(latent_channels**(1/2))):
+        for col in range(int(latent_channels**(1/2))):
+            canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]] = image_array[i]
+            i+=1
 
     if img_channels == 1:                   #grayscale image
         pred = np.reshape(pred, (len(pred), size, size))
