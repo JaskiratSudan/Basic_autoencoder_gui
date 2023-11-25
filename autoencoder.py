@@ -14,7 +14,12 @@ import glob
 from PIL import Image, ImageTk
 
 
-def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar, input_size, latent_size, output_size):
+model = tf.keras.models.load_model(
+    's256_e50_i5000reconstruction.model',
+    custom_objects=None,
+    compile=True)
+
+def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar, latent_ch, input_size=None, latent_size=None, output_size=None):
     files = glob.glob('output/*')
     for f in files:
         os.remove(f)
@@ -22,7 +27,7 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
     size = 256
     img_channels = 3
     latent_dim = (32,32)
-    latent_channels = 64
+    latent_channels = latent_ch
 
     np.random.seed(42)
     img_data = []
@@ -75,9 +80,9 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
             # input_size.configure(text="{} KB".format(sys.getsizeof(img_array)/1024))
             # latent_size.configure(text="{} KB".format(sys.getsizeof(canvas)/1024))
             # output_size.configure(text="{} KB".format(sys.getsizeof(pred)/1024))
-            input_size.configure(text="{}".format(img_array.nbytes/1024))
-            latent_size.configure(text="{}".format(canvas.nbytes/1024))
-            output_size.configure(text="{}".format(pred.nbytes/1024))
+            # input_size.configure(text="{}".format(img_array.nbytes/1024))
+            # latent_size.configure(text="{}".format(canvas.nbytes/1024))
+            # output_size.configure(text="{}".format(pred.nbytes/1024))
             status_lab.configure(text="Training  Model... \n{}/{} epochs done.".format(epoch, epochs))
             window.update_idletasks()
 
@@ -104,35 +109,35 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
 
     # model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
-    model = Sequential()
-    model.add(Conv2D(64, (3,3), activation='relu', padding='same', strides=2, input_shape=(size, size, 3)))
-    model.add(Dropout(0.2))
-    # model.add(MaxPooling2D((2,2), padding='same'))
-    model.add(Conv2D(32, (3,3), activation='relu', strides=2, padding='same'))
-    model.add(Dropout(0.2))
-    # model.add(MaxPooling2D((2,2), padding='same'))
-    model.add(Conv2D(latent_channels, (3,3), activation='relu', strides=2, padding='same'))
-    # model.add(MaxPooling2D((2,2), padding='same'))
-    # model.add(Conv2D(4, (3,3), activation='relu', strides=2, padding='same'))
-    # model.add(MaxPooling2D((2,2), padding='same'))
-    # model.add(Conv2D(4, (3,3), activation='relu', strides=2, padding='same'))
-    model.layers[-1]._name = "latent_space"
+    # model = Sequential()
+    # model.add(Conv2D(64, (3,3), activation='relu', padding='same', strides=2, input_shape=(size, size, 3)))
+    # model.add(Dropout(0.2))
+    # # model.add(MaxPooling2D((2,2), padding='same'))
+    # model.add(Conv2D(32, (3,3), activation='relu', strides=2, padding='same'))
+    # model.add(Dropout(0.2))
+    # # model.add(MaxPooling2D((2,2), padding='same'))
+    # model.add(Conv2D(latent_channels, (3,3), activation='relu', strides=2, padding='same'))
+    # # model.add(MaxPooling2D((2,2), padding='same'))
+    # # model.add(Conv2D(4, (3,3), activation='relu', strides=2, padding='same'))
+    # # model.add(MaxPooling2D((2,2), padding='same'))
+    # # model.add(Conv2D(4, (3,3), activation='relu', strides=2, padding='same'))
+    # model.layers[-1]._name = "latent_space"
 
-    # model.add(Conv2D(4, (3,3), activation='relu', padding='same'))
+    # # model.add(Conv2D(4, (3,3), activation='relu', padding='same'))
+    # # model.add(UpSampling2D((2,2)))
+    # model.add(Conv2D(16, (3,3), activation='relu', padding='same'))
     # model.add(UpSampling2D((2,2)))
-    model.add(Conv2D(16, (3,3), activation='relu', padding='same'))
-    model.add(UpSampling2D((2,2)))
-    model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
-    model.add(UpSampling2D((2,2)))
-    model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
-    model.add(UpSampling2D((2,2)))
-    model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
+    # model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    # model.add(UpSampling2D((2,2)))
+    # model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
     # model.add(UpSampling2D((2,2)))
     # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
-    # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
+    # # model.add(UpSampling2D((2,2)))
+    # # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
+    # # model.add(UpSampling2D((2,2)))
+    # # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
 
-    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+    # model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
     #---------------------------------------------------------
 
