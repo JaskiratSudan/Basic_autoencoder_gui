@@ -4,6 +4,8 @@ A very basic Autoencoder Architecture is designed, which can be trained on the l
 
 https://github.com/JaskiratSudan/Basic_autoencoder_gui/assets/68187330/17c37173-2b1f-4fdf-ad4d-5b745789898c
 
+Check on youtube: https://www.youtube.com/watch?v=mnxxFqswMfU
+
 ## Installation
 It is recommended to install libraries in a virtual environment.
 - Create virtual environment using venv:
