@@ -9,7 +9,7 @@ from autoencoder import train_model
 
 
 window = ttk.Window(themename='darkly')
-window.title("Basic Autoencoder GUI")
+window.title("Pixel Zipper")
 window.geometry('900x600')
 
 path = None

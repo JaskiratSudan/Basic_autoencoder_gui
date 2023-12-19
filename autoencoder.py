@@ -14,10 +14,15 @@ import glob
 from PIL import Image, ImageTk
 
 
+def SSIMLoss(y_true, y_pred):
+  return 1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, 1.0))
+
+
 model = tf.keras.models.load_model(
     's256_e50_i5000reconstruction.model',
     custom_objects=None,
     compile=True)
+    
 
 def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar, latent_ch, input_size=None, latent_size=None, output_size=None):
     files = glob.glob('output/*')
