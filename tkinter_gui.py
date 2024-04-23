@@ -9,7 +9,7 @@ from autoencoder import train_model
 
 
 window = ttk.Window(themename='darkly')
-window.title("Pixel Zipper")
+window.title("Scalable Convolutional Autoencoder (SCA)")
 window.geometry('900x600')
 
 path = None
@@ -25,8 +25,14 @@ def import_img(labelname):
     labelname.photo = image
     status_lab.config(text="Enter number of epochs and Train.")
 
+
+model=256
 def training(path, epochs, latent_ch, lab):
-    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, latent_lab=latent_lab,progress_var=progress_var, progress_bar=pb, latent_ch=latent_ch, input_size=input_size, latent_size=latent_size, output_size=output_size)
+    if model_512.get() == 1:
+        model = 512
+    elif model_512.get() == 0:
+        model = 256
+    train_model(path=path, epochs=epochs, window=window, output_label=lab, status_lab=status_lab, latent_lab=latent_lab,progress_var=progress_var, progress_bar=pb, input_size=input_size, latent_size=latent_size, output_size=output_size, psnr=psnr, comp_ratio=comp_ratio, model=model)
     status_lab.config(text="Done Training")
 
 import_button = ttk.Button(window, text='Import image', command=lambda:import_img(train_label))
@@ -48,24 +54,28 @@ latent_val = ttk.Entry(master=window)
 latent_val.insert(0, "Enter latent channels here")
 latent_val.config(state='disabled')
 latent_val.bind('<Button-1>', click(latent_val))
+    
+model_512 = tk.IntVar()
 
-train_button = ttk.Button(window, text='Train', command=lambda:training(path=path, epochs=int(epochs_val.get()), latent_ch=int(latent_val.get()), lab=output_label))
+model_512_box = ttk.Checkbutton(window, text="Scaled Model (512 pixel)", variable=model_512)
 
-output_pl = Image.open(person_img).resize((256,256))
+# train_button = ttk.Button(window, text='Train', command=lambda:training(path=path, epochs=int(epochs_val.get()), latent_ch=int(latent_val.get()), lab=output_label))
+train_button = ttk.Button(window, text='Compress', command=lambda:training(path=path, epochs=0, latent_ch=8, lab=output_label))
+
+
+output_pl = Image.open(person_img).resize((img_size,img_size))
 output_tk = ImageTk.PhotoImage(output_pl)
 output_label = ttk.Label(window, image=output_tk)
 
 status_lab = ttk.Label(anchor="center", text="Please Import image.")
 
-check_var = tk.IntVar()
-# model_check = ttk.Checkbutton(window, text="increase depth of latent space.", variable=check_var)
 progress_var = tk.DoubleVar()
 progress_var.set(0)
 pb = ttk.Progressbar(window, variable=progress_var, orient='horizontal', mode='determinate', length=200)
 
-latent_pl = Image.open(person_img).resize((256,256))
+latent_pl = Image.open(person_img).resize((int(img_size/2),int(img_size/2)))
 latent_tk = ImageTk.PhotoImage(latent_pl)
-latent_lab = ttk.Label(window, image=output_tk)
+latent_lab = ttk.Label(window, image=latent_tk)
 
 input_info = ttk.Label(window, text="Input Image")
 latent_info = ttk.Label(window, text="Latent Space Channels")
@@ -75,6 +85,8 @@ input_size = ttk.Label(window, text="Input image size.")
 latent_size = ttk.Label(window, text="Latent image size.")
 output_size = ttk.Label(window, text="Output image size.")
 
+psnr = ttk.Label(window, text="PSNR: ")
+comp_ratio = ttk.Label(window, text="Compression Ratio: ")
 
 
 window.columnconfigure(0, weight=5)
@@ -86,19 +98,21 @@ window.rowconfigure(2, weight=1)
 
 import_button.grid(row=0, column=0)
 train_label.grid(row=1, column=0)
-epochs_val.grid(row=0, column=1)
-latent_val.grid(row=0,column=1,sticky='s')
-# model_check.grid(row=0, column=2, sticky='s')
+# epochs_val.grid(row=0, column=1)
+# latent_val.grid(row=0,column=1,sticky='s')
+model_512_box.grid(row=0, column=2)
 latent_lab.grid(row=1, column=1)
-train_button.grid(row=0,column=2, sticky='w')
+train_button.grid(row=0,column=1)
 output_label.grid(row=1, column=2)
-status_lab.grid(row=2, column=1, sticky='n')
-# input_size.grid(row=2, column=0, sticky='n')
-# latent_size.grid(row=2, column=1, sticky='n')
-# output_size.grid(row=2, column=2, sticky='n')
-pb.grid(row=2,column=1)
+# status_lab.grid(row=2, column=1, sticky='n')
+input_size.grid(row=2, column=0, sticky='n')
+latent_size.grid(row=1, column=1, sticky='s')
+output_size.grid(row=1, column=2, sticky='s')
+# pb.grid(row=2,column=1)
 input_info.grid(row=1,column=0, sticky='n')
 latent_info.grid(row=1,column=1, sticky='n')
 output_info.grid(row=1,column=2, sticky='n')
+psnr.grid(row=2,column=1)
+comp_ratio.grid(row=2,column=2)
 
 window.mainloop()

@@ -13,26 +13,52 @@ import sys
 import glob
 from PIL import Image, ImageTk
 
-
-def SSIMLoss(y_true, y_pred):
-  return 1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, 1.0))
-
-
-model = tf.keras.models.load_model(
-    's256_e50_i5000reconstruction.model',
-    custom_objects=None,
-    compile=True)
     
+def calculate_psnr(img1, img2):
+    mse = np.mean((img1 - img2) ** 2)
+    if mse == 0:
+        return float('inf')
+    max_pixel = 255.0
+    psnr = 10 * np.log10(max_pixel / np.sqrt(mse))
+    return psnr
+    
+def ratioFunction(num1, num2):
+    int(num1) 
+    int(num2) 
+    ratio12 = int(num1/num2)
+    return ratio12
 
-def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar, latent_ch, input_size=None, latent_size=None, output_size=None):
+
+def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar, input_size, latent_size, output_size, psnr, comp_ratio, model):
+    window.update_idletasks()
     files = glob.glob('output/*')
     for f in files:
         os.remove(f)
 
     size = 256
-    img_channels = 3
-    latent_dim = (32,32)
-    latent_channels = latent_ch
+    
+
+    if model==256:
+        model = tf.keras.models.load_model(
+        'models/s256_e100_i2100_ch3reconstruction.model',
+        custom_objects=None,
+        compile=True)
+        model_size = 256
+        img_channels = 3
+        latent_dim = (32,32)
+        latent_channels = 8
+
+    elif model==512:
+        model = tf.keras.models.load_model(
+        'models/Final_512',
+        custom_objects=None,
+        compile=True)
+        model_size = 512
+        img_channels = 3
+        latent_dim = (64,64)
+        latent_channels = 8
+
+    print("MODEL: ", model)
 
     np.random.seed(42)
     img_data = []
@@ -41,10 +67,10 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     else:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (size, size))
+    img = cv2.resize(img, (model_size, model_size))
     img_data.append(img_to_array(img))
 
-    img_array = np.reshape(img_data, (len(img_data), size, size, img_channels))
+    img_array = np.reshape(img_data, (len(img_data), model_size, model_size, img_channels))
     img_array = img_array.astype('float32')/255.
     progress_bar.config(maximum=epochs)
     
@@ -58,7 +84,7 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
         def on_epoch_end(self, epoch, logs={}):
             pred = self.model.predict(self.image)
             pred[0] = pred[0] / pred[0].max()
-            pred = np.reshape(pred, (len(pred), size, size, 3))
+            pred = np.reshape(pred, (len(pred), model_size, model_size, img_channels))
             pred = np.squeeze(pred)
             intermediate_prediction = intermediate_model.predict(img_array) #predicting in the Intermediate Node
             intermediate_prediction = np.squeeze(intermediate_prediction)
@@ -82,12 +108,10 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
             output_label.photo = output_tk
             progress_var.set(epoch+1)
 
-            # input_size.configure(text="{} KB".format(sys.getsizeof(img_array)/1024))
-            # latent_size.configure(text="{} KB".format(sys.getsizeof(canvas)/1024))
-            # output_size.configure(text="{} KB".format(sys.getsizeof(pred)/1024))
-            # input_size.configure(text="{}".format(img_array.nbytes/1024))
-            # latent_size.configure(text="{}".format(canvas.nbytes/1024))
-            # output_size.configure(text="{}".format(pred.nbytes/1024))
+            input_size.configure(text="{} KB".format((img_array.nbytes)/1024))
+            latent_size.configure(text="{} KB".format((canvas.nbytes)/1024))
+            output_size.configure(text="{} KB".format((pred.nbytes)/1024))
+
             status_lab.configure(text="Training  Model... \n{}/{} epochs done.".format(epoch, epochs))
             window.update_idletasks()
 
@@ -152,20 +176,41 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
     intermediate_model=tf.keras.models.Model(inputs=model.input,outputs=layer_output)
     
     create_frames = PerformancePlotCallback(img_array, model_name=model)
-    model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
+    # model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
+    # model.predict(img_array, callbacks=[create_frames])    
     pred = model.predict(img_array)
     pred[0] = pred[0] / pred[0].max()
+    pred = np.reshape(pred, (len(pred), model_size, model_size, img_channels))
+    pred = np.squeeze(pred)
+    pred = cv2.resize(pred, (size, size))
+    output_pl = Image.fromarray(np.uint8(pred*255))
+    output_tk = ImageTk.PhotoImage(output_pl)
+    output_label.configure(image=output_tk)
+    output_label.photo = output_tk
 
     intermediate_prediction=intermediate_model.predict(img_array) #predicting in the Intermediate Node
     intermediate_prediction = np.squeeze(intermediate_prediction)
     print(np.shape(intermediate_prediction))  
     image_array = np.asarray(cv2.split(np.squeeze(intermediate_prediction)))
-    canvas = np.zeros((int(latent_dim[0]*(latent_channels**(1/2))), int(latent_dim[0]*(latent_channels**(1/2)))))
-    i=0
-    for row in range(int(latent_channels**(1/2))):
-        for col in range(int(latent_channels**(1/2))):
-            canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]] = image_array[i]
-            i+=1
+    canvas = np.zeros((latent_dim[0]*2,latent_dim[1]*4))
+    for i in range(0,latent_channels):
+        for row in range(2):
+            for col in range(4):
+                canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]] = image_array[i]
+
+    latent_pl = Image.fromarray(np.uint8(canvas*255)).resize((256,128))
+    latent_tk = ImageTk.PhotoImage(latent_pl)
+    latent_lab.configure(image=latent_tk)
+    latent_lab.photo = latent_tk
+
+    psnr.configure(text="PSNR: {} dB".format(calculate_psnr(img_array, pred)))
+    comp_ratio.configure(text="Compression Ratio: {}".format(ratioFunction((pred.nbytes)/1024, (img_array.nbytes)/1024)))
+
+    input_size.configure(text="{} KB".format((img_array.nbytes)/1024))
+    latent_size.configure(text="{} KB".format((canvas.nbytes)/1024))
+    output_size.configure(text="{} KB".format((pred.nbytes)/1024))
+
+    window.update_idletasks()
 
     if img_channels == 1:                   #grayscale image
         pred = np.reshape(pred, (len(pred), size, size))
