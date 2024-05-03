@@ -1,4 +1,4 @@
-# Basic Autoencoder GUI
+# Scalable Convolutional Autoencoder (SCA)
 ### A fun way to watch Autoencoders learn to reconstruct pictures from latent space.
 A very basic Autoencoder Architecture is designed, which can be trained on the local machine.
 
