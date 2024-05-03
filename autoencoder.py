@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Dropout, BatchNormalization
+from tensorflow.keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Conv2DTranspose
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import Callback
 from tensorflow import keras
@@ -25,48 +25,45 @@ def calculate_psnr(img1, img2):
 def ratioFunction(num1, num2):
     int(num1) 
     int(num2) 
-    ratio12 = int(num1/num2)
-    return ratio12
+    ratio12 = num1/num2
+    return int(ratio12)
 
 
-def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar, input_size, latent_size, output_size, psnr, comp_ratio, model):
+def train_model(path, epochs, window, output_label, status_lab, latent_lab, progress_var, progress_bar, input_size, latent_size, output_size, psnr, comp_ratio, model_var):
     window.update_idletasks()
     files = glob.glob('output/*')
     for f in files:
         os.remove(f)
 
     size = 256
-    
+    model_size = 256
+    latent_dim = (32,32)
+    img_channels = 3
 
-    if model==256:
+    if model_var==256:
         model = tf.keras.models.load_model(
-        'models/s256_e100_i2100_ch3reconstruction.model',
+        'models/s256_e100_i2100_ch3reconstruction',
         custom_objects=None,
         compile=True)
         model_size = 256
-        img_channels = 3
         latent_dim = (32,32)
         latent_channels = 8
 
-    elif model==512:
+    elif model_var==512:
         model = tf.keras.models.load_model(
         'models/Final_512',
         custom_objects=None,
         compile=True)
         model_size = 512
-        img_channels = 3
         latent_dim = (64,64)
         latent_channels = 8
 
-    print("MODEL: ", model)
+    print("MODEL: ", model_var)
 
     np.random.seed(42)
     img_data = []
     img = cv2.imread(path)
-    if img_channels == 1:           #grayscale image
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    else:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, (model_size, model_size))
     img_data.append(img_to_array(img))
 
@@ -91,12 +88,33 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
             # print(np.shape(intermediate_prediction)) 
              
             image_array = np.asarray(cv2.split(np.squeeze(intermediate_prediction)))
-            canvas = np.zeros((int(latent_dim[0]*(latent_channels**(1/2))), int(latent_dim[0]*(latent_channels**(1/2)))))
-            i=0
-            for row in range(int(latent_channels**(1/2))):
-                for col in range(int(latent_channels**(1/2))):
-                    canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]] = image_array[i]
-                    i+=1
+
+            intermediate_shape = intermediate_prediction.shape
+            if len(intermediate_shape) == 3:
+                latent_channels = intermediate_shape[-1]
+            elif len(intermediate_shape) == 2:
+                # Assuming the shape is (height, width), and there's only one channel
+                latent_channels = 1
+
+            canvas_rows = int(np.ceil(latent_channels / 4))  # Calculate the number of rows needed
+            canvas_cols = min(latent_channels, 4)           # Maximum 4 columns
+            canvas = np.zeros((latent_dim[0] * canvas_rows, latent_dim[1] * canvas_cols))
+            for i in range(latent_channels):
+                # Calculate the row and column indices for placing the channel
+                row_index = i // canvas_cols
+                col_index = i % canvas_cols
+                
+                # Calculate the start and end indices for placing the channel on the canvas
+                start_row = row_index * latent_dim[0]
+                end_row = start_row + latent_dim[0]
+                start_col = col_index * latent_dim[1]
+                end_col = start_col + latent_dim[1]
+        
+                # Place the channel on the canvas
+                if len(intermediate_shape) == 3:
+                    canvas[start_row:end_row, start_col:end_col] = intermediate_prediction[:,:,i]
+                elif len(intermediate_shape) == 2:
+                    canvas[start_row:end_row, start_col:end_col] = intermediate_prediction[:,:]
                         
             latent_pl = Image.fromarray(np.uint8(canvas*255)).resize((200,200))
             latent_tk = ImageTk.PhotoImage(latent_pl)
@@ -116,87 +134,87 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
             window.update_idletasks()
 
     #-------------------------------------------------------
+    if model_var=='train':
+        #------------------MODEL--------------------------------
+        
+        optimizer='Nadam'
+        activation='relu'
+        loss="MeanSquaredError"
 
-    #------------------MODEL--------------------------------
+        latent_channels = 8
+        kernel = (3,3)
+        model = Sequential()
+        model.add(Conv2D(32, kernel, activation=activation, strides=2, padding='same', input_shape=(model_size, model_size, img_channels)))
+        model.add(Conv2D(32, kernel, activation=activation, strides=2, padding='same'))
 
-    # model = Sequential()
-    # model.add(Conv2D(32, (3,3), activation='relu', padding='same', input_shape=(size, size, 3)))
-    # model.add(MaxPooling2D((2,2), padding='same'))
-    # model.add(Conv2D(8, (3,3), activation='relu', padding='same'))
-    # model.add(MaxPooling2D((2,2), padding='same'))
-    # model.add(Conv2D(4, (3,3), activation='relu', padding='same'))
-    # model.add(MaxPooling2D((2,2), padding='same'))
-   
-    # model.add(Conv2D(4, (3,3), activation='relu', padding='same'))
-    # model.layers[-1]._name = "latent_space"
-    # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(8, (3,3), activation='relu', padding='same'))
-    # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(32, (3,3), activation='relu', padding='same', input_shape=(size, size, 3)))
-    # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
+        model.add(Conv2D(latent_channels, kernel, activation=activation, strides=2, padding='same'))
+        model.layers[-1]._name = "latent_space"
 
-    # model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+        model.add(Conv2DTranspose(32, kernel, strides=2, activation=activation, padding='same'))
+        model.add(UpSampling2D((2,2)))
+        model.add(Conv2DTranspose(img_channels, kernel, strides=2, activation=activation, padding='same'))
 
-    # model = Sequential()
-    # model.add(Conv2D(64, (3,3), activation='relu', padding='same', strides=2, input_shape=(size, size, 3)))
-    # model.add(Dropout(0.2))
-    # # model.add(MaxPooling2D((2,2), padding='same'))
-    # model.add(Conv2D(32, (3,3), activation='relu', strides=2, padding='same'))
-    # model.add(Dropout(0.2))
-    # # model.add(MaxPooling2D((2,2), padding='same'))
-    # model.add(Conv2D(latent_channels, (3,3), activation='relu', strides=2, padding='same'))
-    # # model.add(MaxPooling2D((2,2), padding='same'))
-    # # model.add(Conv2D(4, (3,3), activation='relu', strides=2, padding='same'))
-    # # model.add(MaxPooling2D((2,2), padding='same'))
-    # # model.add(Conv2D(4, (3,3), activation='relu', strides=2, padding='same'))
-    # model.layers[-1]._name = "latent_space"
+        model.compile(optimizer, loss = loss, metrics=['accuracy']) 
 
-    # # model.add(Conv2D(4, (3,3), activation='relu', padding='same'))
-    # # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(16, (3,3), activation='relu', padding='same'))
-    # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
-    # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
-    # model.add(UpSampling2D((2,2)))
-    # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
-    # # model.add(UpSampling2D((2,2)))
-    # # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
-    # # model.add(UpSampling2D((2,2)))
-    # # model.add(Conv2D(3, (3,3), activation='relu', padding='same'))
+        layer_output=model.get_layer('latent_space').output  #get the Output of the Layer
+        intermediate_model=tf.keras.models.Model(inputs=model.input,outputs=layer_output)
 
-    # model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+        #---------------------------------------------------------
 
-    #---------------------------------------------------------
+        create_frames = PerformancePlotCallback(img_array, model_name=model)
+        model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
+        # model.predict(img_array, callbacks=[create_frames]) 
 
-    model.summary()
+    # model.summary()
 
     layer_output=model.get_layer('latent_space').output  #get the Output of the Layer
     intermediate_model=tf.keras.models.Model(inputs=model.input,outputs=layer_output)
     
-    create_frames = PerformancePlotCallback(img_array, model_name=model)
-    # model.fit(img_array, img_array, epochs=epochs, shuffle=True, callbacks=[create_frames])
-    # model.predict(img_array, callbacks=[create_frames])    
+   
     pred = model.predict(img_array)
     pred[0] = pred[0] / pred[0].max()
     pred = np.reshape(pred, (len(pred), model_size, model_size, img_channels))
     pred = np.squeeze(pred)
-    pred = cv2.resize(pred, (size, size))
-    output_pl = Image.fromarray(np.uint8(pred*255))
-    output_tk = ImageTk.PhotoImage(output_pl)
-    output_label.configure(image=output_tk)
-    output_label.photo = output_tk
+    
 
     intermediate_prediction=intermediate_model.predict(img_array) #predicting in the Intermediate Node
     intermediate_prediction = np.squeeze(intermediate_prediction)
     print(np.shape(intermediate_prediction))  
     image_array = np.asarray(cv2.split(np.squeeze(intermediate_prediction)))
-    canvas = np.zeros((latent_dim[0]*2,latent_dim[1]*4))
-    for i in range(0,latent_channels):
-        for row in range(2):
-            for col in range(4):
-                canvas[row*latent_dim[0]:row*latent_dim[0]+latent_dim[0], col*latent_dim[0]:col*latent_dim[0]+latent_dim[0]] = image_array[i]
+
+    # Get the shape of intermediate_prediction
+    intermediate_shape = intermediate_prediction.shape
+
+    # Determine the number of channels
+    if len(intermediate_shape) == 3:
+        latent_channels = intermediate_shape[-1]
+    elif len(intermediate_shape) == 2:
+        # Assuming the shape is (height, width), and there's only one channel
+        latent_channels = 1
+
+    # Initialize the canvas
+    canvas_rows = int(np.ceil(latent_channels / 4))  # Calculate the number of rows needed
+    canvas_cols = min(latent_channels, 4)           # Maximum 4 columns
+    canvas = np.zeros((latent_dim[0] * canvas_rows, latent_dim[1] * canvas_cols))
+
+    # Iterate over each channel
+    for i in range(latent_channels):
+        # Calculate the row and column indices for placing the channel
+        row_index = i // canvas_cols
+        col_index = i % canvas_cols
+        
+        # Calculate the start and end indices for placing the channel on the canvas
+        start_row = row_index * latent_dim[0]
+        end_row = start_row + latent_dim[0]
+        start_col = col_index * latent_dim[1]
+        end_col = start_col + latent_dim[1]
+        
+        # Place the channel on the canvas
+        if len(intermediate_shape) == 3:
+            canvas[start_row:end_row, start_col:end_col] = intermediate_prediction[:,:,i]
+        elif len(intermediate_shape) == 2:
+            canvas[start_row:end_row, start_col:end_col] = intermediate_prediction[:,:]
+
 
     latent_pl = Image.fromarray(np.uint8(canvas*255)).resize((256,128))
     latent_tk = ImageTk.PhotoImage(latent_pl)
@@ -204,20 +222,22 @@ def train_model(path, epochs, window, output_label, status_lab, latent_lab, prog
     latent_lab.photo = latent_tk
 
     psnr.configure(text="PSNR: {} dB".format(calculate_psnr(img_array, pred)))
-    comp_ratio.configure(text="Compression Ratio: {}".format(ratioFunction((pred.nbytes)/1024, (img_array.nbytes)/1024)))
+    print(calculate_psnr(img_array, pred))
+    comp_ratio.configure(text="Compression Ratio: {}".format(ratioFunction(img_array.nbytes/1000, intermediate_prediction.nbytes/1000)))
 
     input_size.configure(text="{} KB".format((img_array.nbytes)/1024))
-    latent_size.configure(text="{} KB".format((canvas.nbytes)/1024))
+    latent_size.configure(text="{} KB".format((intermediate_prediction.nbytes)/1024))
     output_size.configure(text="{} KB".format((pred.nbytes)/1024))
 
-    window.update_idletasks()
-
-    if img_channels == 1:                   #grayscale image
-        pred = np.reshape(pred, (len(pred), size, size))
-        matplotlib.image.imsave('output/out_e{}.png'.format(epochs), pred[0])
-    else:
-        matplotlib.image.imsave('output/out_e{}.png'.format(epochs), pred[0])
+    matplotlib.image.imsave('output/out_e{}.png'.format(epochs), pred)
     matplotlib.image.imsave('output/latent_space_e{}.png'.format(epochs), canvas)
-    print(model.summary())
 
     matplotlib.image.imsave('output/input.png', np.squeeze(img_array))
+
+    pred = cv2.resize(pred, (size, size))
+    output_pl = Image.fromarray(np.uint8(pred*255))
+    output_tk = ImageTk.PhotoImage(output_pl)
+    output_label.configure(image=output_tk)
+    output_label.photo = output_tk
+
+    window.update_idletasks()
