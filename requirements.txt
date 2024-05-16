@@ -1,7 +1,7 @@
-keras
+keras==2.15
 matplotlib
 numpy
 opencv_python
 Pillow
-tensorflow
+tensorflow==2.15
 ttkbootstrap
